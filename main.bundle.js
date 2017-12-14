@@ -48,11 +48,11 @@
 
 	//foods.html
 	__webpack_require__(1);
-	__webpack_require__(5);
+	__webpack_require__(3);
 
 	//index.html
-	__webpack_require__(7);
 	__webpack_require__(11);
+	__webpack_require__(16);
 
 /***/ }),
 /* 1 */
@@ -67,11 +67,15 @@
 
 	var _foodRequests = __webpack_require__(2);
 
-	var _appendFood = __webpack_require__(4);
+	var _appendFood = __webpack_require__(5);
 
-	var _foodListener = __webpack_require__(5);
+	var _foodSort = __webpack_require__(7);
 
-	var $ = __webpack_require__(3);
+	exports.renderFoods = renderFoods;
+	exports.renderMealFoods = renderMealFoods;
+
+
+	var $ = __webpack_require__(6);
 
 	renderFoods();
 	renderMealFoods();
@@ -81,7 +85,7 @@
 	    for (var i = 0; i < foodObjects.length; i++) {
 	      (0, _appendFood.appendFood)(foodObjects[i], "#foodlist", "food");
 	    }
-	    (0, _foodListener.defaultSort)($('#foodlist'));
+	    (0, _foodSort.defaultSort)($('#foodlist'));
 	  }).catch(function () {
 	    $(".alert").append("Error Loading Food Tracker");
 	  });
@@ -92,14 +96,11 @@
 	    for (var i = 0; i < foodObjects.length; i++) {
 	      (0, _appendFood.appendFoodsToMeals)(foodObjects[i], "#meal-foods-list");
 	    }
-	    (0, _foodListener.defaultSort)($('#meal-foods-list'));
+	    (0, _foodSort.defaultSort)($('#meal-foods-list'));
 	  }).catch(function () {
 	    $(".alert").append("Error Loading Food Tracker");
 	  });
 	}
-
-	exports.renderFoods = renderFoods;
-	exports.renderMealFoods = renderMealFoods;
 
 /***/ }),
 /* 2 */
@@ -110,19 +111,28 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	var $ = __webpack_require__(3);
-	var url = "https://quantified-self-aabs.herokuapp.com/api/v1/foods";
+	exports.foodsResponse = exports.updateFood = exports.deleteFood = exports.createFood = undefined;
+
+	var _foodListener = __webpack_require__(3);
+
+	exports.createFood = createFood;
+	exports.deleteFood = deleteFood;
+	exports.updateFood = updateFood;
+	exports.foodsResponse = foodsResponse;
+
+
+	var $ = __webpack_require__(6);
+	var url = "https://quantified-self-aabs-api.herokuapp.com/api/v1/foods";
 
 	function deleteFood(id) {
 	  $.ajax({
 	    url: url + '/' + id,
 	    type: 'DELETE',
 	    success: function success(result) {
-	      $('#' + id).remove();
-	      alert('You deleted food id=' + id + '!');
+	      (0, _foodListener.removeFromFoodsTable)(id);
 	    },
 	    error: function error(result) {
-	      alert('You must delete the meals this food belongs to in order to delete it.');
+	      alert('Error: This food is currently part of a meal. Please remove in your diary first.');
 	    }
 	  });
 	}
@@ -137,19 +147,159 @@
 
 	function foodsResponse() {
 	  return $.get(url);
+	  // return $.get(url)
 	}
 
 	function createFood(foodObject) {
 	  return $.post(url, { food: foodObject });
 	}
 
-	exports.createFood = createFood;
-	exports.deleteFood = deleteFood;
-	exports.updateFood = updateFood;
-	exports.foodsResponse = foodsResponse;
-
 /***/ }),
 /* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	exports.removeFromFoodsTable = undefined;
+
+	var _food = __webpack_require__(4);
+
+	var _all_food_objects = __webpack_require__(1);
+
+	var _foodRequests = __webpack_require__(2);
+
+	var _appendFood = __webpack_require__(5);
+
+	var _foodSort = __webpack_require__(7);
+
+	var _foodFilter = __webpack_require__(8);
+
+	var _foodForm = __webpack_require__(9);
+
+	var _foodMisc = __webpack_require__(10);
+
+	exports.removeFromFoodsTable = _foodMisc.removeFromFoodsTable;
+
+
+	var $ = __webpack_require__(6);
+
+	$("#food_form").on("submit", function (event) {
+	    event.preventDefault();
+	    var newFood = (0, _foodForm.foodFormData)();
+	    if ((0, _foodForm.isValidated)(newFood)) {
+	        (0, _foodForm.clearFormFields)();
+	        (0, _foodRequests.createFood)(newFood).then(function (response) {
+	            (0, _appendFood.appendFood)(response, "#foodlist", "food");
+	        });
+	    }
+	});
+
+	//delete button functions
+	$('.list').on({
+	    mouseenter: function mouseenter() {
+	        $(this).prop("src", "src/x-button.svg");
+	    },
+	    mouseleave: function mouseleave() {
+	        $(this).prop("src", "src/delete.svg");
+	    },
+	    click: function click() {
+	        var parent = $(this).parents("tr");
+	        (0, _foodRequests.deleteFood)(parent.attr('id'));
+	    }
+	}, '.food_delete_button');
+
+	//edit food functions
+	$('.list').on({
+	    click: function click() {
+	        $(this).attr('contenteditable', "true");
+	        $(this).addClass('highlighted');
+	    },
+	    blur: function blur() {
+	        $(this).removeClass('highlighted');
+	        var updatedFood = (0, _foodMisc.getUpdatedFood)($(this));
+	        (0, _foodRequests.updateFood)(updatedFood);
+	    }
+	}, '.foodinfo');
+
+	//filter
+	$("#foodfilter").on('keyup', function () {
+	    (0, _foodFilter.applyFilter)();
+	});
+
+	// sort
+	$('.searchable thead').on({
+	    click: function click() {
+	        var table = $(this).parents('table');
+	        (0, _foodSort.sortFoodTable)(table);
+	    }
+	}, '#calorie-header');
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	exports.Food = Food;
+
+	var Food = function Food(name, calories) {
+	  var id = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+
+	  _classCallCheck(this, Food);
+
+	  this.name = name;
+	  this.calories = calories;
+	  if (id) {
+	    this.id = id;
+	  }
+	};
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.appendFood = appendFood;
+	exports.appendFoodsToMeals = appendFoodsToMeals;
+
+
+	var $ = __webpack_require__(6);
+
+	function appendFood(foodObject, element, page) {
+	  var name = foodObject.name;
+	  var id = foodObject.id;
+	  var tableRowOne = '<td  class=\'foodinfo name\'>' + name + '</td>';
+	  var tableRowTwo = '<td class=\'foodinfo calories\'>' + foodObject.calories + '</td>';
+	  var tableRowThree = '<td><img src="src/delete.svg" class="' + page + '_delete_button" height="20px" width="20px"></td>';
+	  var table = '<tr id=' + id + '> ' + tableRowOne + ' ' + tableRowTwo + ' ' + tableRowThree + ' </tr>';
+	  $(element).append(table);
+	}
+
+	function appendFoodsToMeals(foodObject, element) {
+	  var name = foodObject.name;
+	  var id = foodObject.id;
+	  var tableRowOne = '<td><input type="checkbox" id="' + id + '" name="' + name + '"></td>';
+	  var tableRowTwo = '<td  class=\'foodinfo name\'>' + name + '</td>';
+	  var tableRowThree = '<td class=\'foodinfo calories\'>' + foodObject.calories + '</td>';
+	  var table = '<tr id=' + id + '> ' + tableRowOne + ' ' + tableRowTwo + ' ' + tableRowThree + ' </tr>';
+	  $(element).append(table);
+	}
+
+/***/ }),
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -10408,42 +10558,7 @@
 
 
 /***/ }),
-/* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	var $ = __webpack_require__(3);
-
-	exports.appendFood = appendFood;
-	exports.appendFoodsToMeals = appendFoodsToMeals;
-
-
-	function appendFood(foodObject, element, page) {
-	  var name = foodObject.name;
-	  var id = foodObject.id;
-	  var tableRowOne = '<td  class=\'foodinfo name\'>' + name + '</td>';
-	  var tableRowTwo = '<td class=\'foodinfo calories\'>' + foodObject.calories + '</td>';
-	  var tableRowThree = '<td><img src="src/delete.svg" class="' + page + '_delete_button" height="20px" width="20px"></td>';
-	  var table = '<tr id=' + id + '> ' + tableRowOne + ' ' + tableRowTwo + ' ' + tableRowThree + ' </tr>';
-	  $(element).append(table);
-	}
-
-	function appendFoodsToMeals(foodObject, element) {
-	  var name = foodObject.name;
-	  var id = foodObject.id;
-	  var tableRowOne = '<td><input type="checkbox" id="' + id + '" name="' + name + '"></td>';
-	  var tableRowTwo = '<td  class=\'foodinfo name\'>' + name + '</td>';
-	  var tableRowThree = '<td class=\'foodinfo calories\'>' + foodObject.calories + '</td>';
-	  var table = '<tr id=' + id + '> ' + tableRowOne + ' ' + tableRowTwo + ' ' + tableRowThree + ' </tr>';
-	  $(element).append(table);
-	}
-
-/***/ }),
-/* 5 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -10451,122 +10566,13 @@
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
-	exports.defaultSort = undefined;
-
-	var _food = __webpack_require__(6);
-
-	var _all_food_objects = __webpack_require__(1);
-
-	var _foodRequests = __webpack_require__(2);
-
-	var _appendFood = __webpack_require__(4);
-
+	exports.sortFoodTable = sortFoodTable;
 	exports.defaultSort = defaultSort;
 
 
-	var $ = __webpack_require__(3);
+	var $ = __webpack_require__(6);
 
-	var foodFormName = $("#name");
-	var foodFormCals = $("#calories");
-
-	$("#food_form").on("submit", function (event) {
-	    event.preventDefault();
-	    var newFood = foodFormData();
-	    if (objectHasData(newFood)) {
-	        clearFormFields();
-	        (0, _foodRequests.createFood)(newFood).then(function (response) {
-	            (0, _appendFood.appendFood)(response, "#foodlist");
-	        });
-	    }
-	});
-
-	var objectHasData = function objectHasData(newFood) {
-	    var foodname = newFood.name;
-	    var calories = newFood.calories;
-	    if (foodname === '' || calories === '') {
-	        return false;
-	    } else {
-	        return true;
-	    }
-	};
-
-	var foodFormData = function foodFormData() {
-	    return new _food.Food(foodFormName.val(), foodFormCals.val());
-	};
-
-	var clearFormFields = function clearFormFields() {
-	    foodFormName.val("");
-	    foodFormCals.val("");
-	};
-
-	//delete button functions
-	$(document).on({
-	    mouseenter: function mouseenter() {
-	        $(this).prop("src", "src/x-button.svg");
-	    },
-	    mouseleave: function mouseleave() {
-	        $(this).prop("src", "src/delete.svg");
-	    },
-	    click: function click() {
-	        var parent = $(this).parents("tr");
-	        (0, _foodRequests.deleteFood)(parent.attr('id'));
-	    }
-	}, '.food_delete_button');
-
-	//edit food functions
-	$(document).on({
-	    click: function click() {
-	        $(this).attr('contenteditable', "true");
-	        $(this).addClass('highlighted');
-	    },
-	    blur: function blur() {
-	        $(this).removeClass('highlighted');
-	        var updatedFood = getUpdatedFood($(this));
-	        (0, _foodRequests.updateFood)(updatedFood);
-	    }
-	}, '.foodinfo');
-
-	var getUpdatedFood = function getUpdatedFood(element) {
-	    $(element).attr('contenteditable', "false");
-	    var row = $(element).parent();
-	    var id = row.attr('id');
-	    var name = row.find('.name').text();
-	    var calories = row.find('.calories').text();
-	    return new _food.Food(name, calories, id);
-	};
-
-	//filter functions
-	$("#foodfilter").on('keyup', function () {
-	    var regex = getFilterTermRegExp();
-	    prepareTableForFilter();
-	    filterFoods(regex);
-	});
-
-	var getFilterTermRegExp = function getFilterTermRegExp() {
-	    var term = $("#foodfilter").val();
-	    return new RegExp(term, "i");
-	};
-
-	var prepareTableForFilter = function prepareTableForFilter() {
-	    $("table.searchable tr").hide();
-	    $("th").parents().show();
-	};
-
-	var filterFoods = function filterFoods(regexTerm) {
-	    $("table.searchable tr").filter(function () {
-	        return regexTerm.test($(this).children().text());
-	    }).show();
-	};
-
-	// sort - might need to be in a class
-	$(document).on({
-	    click: function click() {
-	        var table = $(this).parents('table');
-	        sortFoodTable(table);
-	    }
-	}, '#calorie-header');
-
-	var sortTableAscending = function sortTableAscending(table) {
+	function sortTableAscending(table) {
 	    var sortableRows = table.children('tr');
 	    var sortedRows = sortableRows.sort(function (a, b) {
 	        var valueA = parseInt($(a).children('td.calories').text());
@@ -10575,9 +10581,9 @@
 	    });
 	    sortableRows.remove();
 	    $(table).append(sortedRows).addClass('asc').removeClass('alphabetical');
-	};
+	}
 
-	var sortTableDescending = function sortTableDescending(table) {
+	function sortTableDescending(table) {
 	    var sortableRows = table.children('tr');
 	    var sortedRows = sortableRows.sort(function (a, b) {
 	        var valueA = parseInt($(a).children('td.calories').text());
@@ -10586,7 +10592,7 @@
 	    });
 	    sortableRows.remove();
 	    $(table).append(sortedRows).addClass('desc').removeClass('asc');
-	};
+	}
 
 	function defaultSort(table) {
 	    var sortableRows = table.children('tr');
@@ -10604,33 +10610,43 @@
 	};
 
 /***/ }),
-/* 6 */
-/***/ (function(module, exports) {
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
 
 	"use strict";
 
 	Object.defineProperty(exports, "__esModule", {
-	  value: true
+	    value: true
 	});
+	exports.applyFilter = applyFilter;
 
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	var Food = function Food(name, calories) {
-	  var id = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+	var $ = __webpack_require__(6);
 
-	  _classCallCheck(this, Food);
-
-	  this.name = name;
-	  this.calories = calories;
-	  if (id) {
-	    this.id = id;
-	  }
+	var getFilterTermRegExp = function getFilterTermRegExp() {
+	    var term = $("#foodfilter").val();
+	    return new RegExp(term, "i");
 	};
 
-	exports.Food = Food;
+	var prepareTableForFilter = function prepareTableForFilter() {
+	    $("table.searchable tr").hide();
+	    $("th").parents().show();
+	};
+
+	var filterFoods = function filterFoods(regexTerm) {
+	    $("table.searchable tr").filter(function () {
+	        return regexTerm.test($(this).children().text());
+	    }).show();
+	};
+
+	function applyFilter() {
+	    var regex = getFilterTermRegExp();
+	    prepareTableForFilter();
+	    filterFoods(regex);
+	}
 
 /***/ }),
-/* 7 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -10638,19 +10654,98 @@
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
-	exports.getTotalRemainCals = exports.renderTotalCalsTable = exports.renderMealTotals = exports.renderAllCals = exports.renderMeals = undefined;
+	exports.clearFormFields = exports.foodFormData = exports.isValidated = undefined;
 
-	var _mealRequests = __webpack_require__(8);
+	var _food = __webpack_require__(4);
 
-	var _appendMeal = __webpack_require__(9);
+	exports.isValidated = isValidated;
+	exports.foodFormData = foodFormData;
+	exports.clearFormFields = clearFormFields;
 
-	var _appendFood = __webpack_require__(4);
 
-	var _renderTotalCalsTable = __webpack_require__(10);
+	var $ = __webpack_require__(6);
 
-	var $ = __webpack_require__(3);
+	var foodFormName = $("#name");
+	var foodFormCals = $("#calories");
 
-	// renderMeals()
+	function isValidated(newFood) {
+	    var foodname = newFood.name;
+	    var calories = newFood.calories;
+	    if (foodname === '' || calories === '') {
+	        return false;
+	    } else {
+	        return true;
+	    }
+	}
+
+	function foodFormData() {
+	    return new _food.Food(foodFormName.val(), foodFormCals.val());
+	}
+
+	function clearFormFields() {
+	    foodFormName.val("");
+	    foodFormCals.val("");
+	}
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	exports.getUpdatedFood = exports.removeFromFoodsTable = undefined;
+
+	var _food = __webpack_require__(4);
+
+	exports.removeFromFoodsTable = removeFromFoodsTable;
+	exports.getUpdatedFood = getUpdatedFood;
+
+
+	var $ = __webpack_require__(6);
+
+	function removeFromFoodsTable(id) {
+	    $('#' + id).remove();
+	}
+
+	function getUpdatedFood(element) {
+	    $(element).attr('contenteditable', "false");
+	    var row = $(element).parent();
+	    var id = row.attr('id');
+	    var name = row.find('.name').text();
+	    var calories = row.find('.calories').text();
+	    return new _food.Food(name, calories, id);
+	}
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	exports.renderTotalCalsTable = exports.renderAllCals = exports.renderMeals = undefined;
+
+	var _mealRequests = __webpack_require__(12);
+
+	var _appendMeal = __webpack_require__(13);
+
+	var _appendFood = __webpack_require__(5);
+
+	var _renderTotalCalsTable = __webpack_require__(14);
+
+	var _renderMealCalsTable = __webpack_require__(15);
+
+	exports.renderMeals = renderMeals;
+	exports.renderAllCals = _renderMealCalsTable.renderAllCals;
+	exports.renderTotalCalsTable = _renderTotalCalsTable.renderTotalCalsTable;
+
+
+	var $ = __webpack_require__(6);
 
 	// render meals
 	function renderMeals() {
@@ -10659,10 +10754,10 @@
 	            var meal = mealObjects[i];
 	            (0, _appendMeal.appendMeal)(meal);
 	            for (var j = 0; j < meal.foods.length; j++) {
-	                (0, _appendFood.appendFood)(meal.foods[j], '.list#' + meal.name, "meal_food");
+	                (0, _appendFood.appendFood)(meal.foods[j], ".list#" + meal.name, "meal_food");
 	            }
 	            (0, _appendMeal.appendCalories)(meal.name);
-	            renderAllCals(meal.name);
+	            (0, _renderMealCalsTable.renderAllCals)(meal.name);
 	        }
 	        (0, _renderTotalCalsTable.renderTotalCalsTable)();
 	    }).catch(function () {
@@ -10670,57 +10765,8 @@
 	    });
 	}
 
-	// render total calories
-	var renderTotalCals = function renderTotalCals(name) {
-	    var tableCalories = (0, _renderTotalCalsTable.getCalories)(name);
-	    var totalCalories = (0, _renderTotalCalsTable.sumCalories)(tableCalories);
-	    $('#' + name + '-calories').text(totalCalories);
-	};
-
-	// render remaining cals
-	var renderRemainCals = function renderRemainCals(name) {
-	    var remainCals = getRemainCals(name);
-	    $('#' + name + '-remaining').text(remainCals);
-	};
-
-	var colorizeCals = function colorizeCals() {
-	    $('td.remaining-calories:contains(\'-\')').addClass('red').removeClass('green');
-	    $('td.remaining-calories:not(:contains(\'-\'))').addClass('green').removeClass('red');
-	};
-
-	var getRemainCals = function getRemainCals(name) {
-	    var total = parseInt($('#' + name + '-calories').text());
-	    var goalValues = { "Snack": 200 - total, "Breakfast": 400 - total, "Lunch": 600 - total, "Dinner": 800 - total };
-	    return goalValues[name];
-	};
-
-	//render all Calories
-	var renderAllCals = function renderAllCals(name) {
-	    renderTotalCals(name);
-	    renderRemainCals(name);
-	    colorizeCals();
-	};
-
-	// render meal totals table
-	var renderMealTotals = function renderMealTotals() {
-	    (0, _appendMeal.appendMealTotals)();
-	};
-
-	// get total remaining cals for all meals
-	var getTotalRemainCals = function getTotalRemainCals(name) {
-	    var goalCals = parseInt($('td#total-goal-cals').text());
-	    var consumedCals = parseInt($('td#all-cals-consumed').text());
-	    return goalCals - consumedCals;
-	};
-
-	exports.renderMeals = renderMeals;
-	exports.renderAllCals = renderAllCals;
-	exports.renderMealTotals = renderMealTotals;
-	exports.renderTotalCalsTable = _renderTotalCalsTable.renderTotalCalsTable;
-	exports.getTotalRemainCals = getTotalRemainCals;
-
 /***/ }),
-/* 8 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -10728,8 +10774,13 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	var $ = __webpack_require__(3);
-	var url = "https://quantified-self-aabs.herokuapp.com/api/v1/meals";
+	exports.mealsResponse = mealsResponse;
+	exports.addFoodToMeal = addFoodToMeal;
+	exports.deleteFoodfromMeal = deleteFoodfromMeal;
+
+
+	var $ = __webpack_require__(6);
+	var url = "https://quantified-self-aabs-api.herokuapp.com/api/v1/meals";
 
 	function mealsResponse() {
 	  return $.get(url);
@@ -10743,22 +10794,18 @@
 	function deleteFoodfromMeal(meal_id, food_id) {
 	  return $.ajax({
 	    url: url + '/' + meal_id + '/foods/' + food_id,
-	    type: 'DELETE'
-	    // success: (result) => {
-	    //   alert(`You  removed food from meal!`)
-	    // },
-	    // error: (result) => {
-	    //   alert(`Food not found - try yelling at it`)
-	    // }
+	    type: 'DELETE',
+	    success: function success(result) {
+	      alert('You  removed food from meal!');
+	    },
+	    error: function error(result) {
+	      alert(result);
+	    }
 	  });
 	}
 
-	exports.mealsResponse = mealsResponse;
-	exports.addFoodToMeal = addFoodToMeal;
-	exports.deleteFoodfromMeal = deleteFoodfromMeal;
-
 /***/ }),
-/* 9 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -10766,12 +10813,12 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	var $ = __webpack_require__(3);
-
 	exports.appendMeal = appendMeal;
 	exports.appendCalories = appendCalories;
 	exports.appendMealTotals = appendMealTotals;
 
+
+	var $ = __webpack_require__(6);
 
 	function appendMeal(mealObject) {
 	  var name = mealObject.name;
@@ -10795,7 +10842,7 @@
 	}
 
 /***/ }),
-/* 10 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -10803,11 +10850,12 @@
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
-	exports.getCalories = exports.sumCalories = exports.renderTotalCalsTable = undefined;
+	exports.renderTotalCalsTable = renderTotalCalsTable;
+	exports.sumCalories = sumCalories;
+	exports.getCalories = getCalories;
 
-	var _all_meal_objects = __webpack_require__(7);
 
-	var $ = __webpack_require__(3);
+	var $ = __webpack_require__(6);
 
 	function renderTotalCalsTable() {
 	    renderAllMealTotalCals();
@@ -10844,6 +10892,13 @@
 	    return calories;
 	}
 
+	// get total remaining cals for all meals
+	var getTotalRemainCals = function getTotalRemainCals(name) {
+	    var goalCals = parseInt($('td#total-goal-cals').text());
+	    var consumedCals = parseInt($('td#all-cals-consumed').text());
+	    return goalCals - consumedCals;
+	};
+
 	// colorize total remaining cals
 	var colorizeAllMealCals = function colorizeAllMealCals() {
 	    $('td#total-cals-remaining:contains(\'-\')').addClass('red').removeClass('green');
@@ -10852,57 +10907,106 @@
 
 	// render total remaining cals
 	var renderTotalRemainingCals = function renderTotalRemainingCals() {
-	    var totalRemainingCals = (0, _all_meal_objects.getTotalRemainCals)();
+	    var totalRemainingCals = getTotalRemainCals();
 	    $('#total-cals-remaining').text(totalRemainingCals);
 	};
 
-	exports.renderTotalCalsTable = renderTotalCalsTable;
-	exports.sumCalories = sumCalories;
-	exports.getCalories = getCalories;
-
 /***/ }),
-/* 11 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var _all_meal_objects = __webpack_require__(7);
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	exports.renderAllCals = undefined;
 
-	var _mealRequests = __webpack_require__(8);
+	var _renderTotalCalsTable = __webpack_require__(14);
 
-	var $ = __webpack_require__(3);
+	exports.renderAllCals = renderAllCals;
+
+
+	var $ = __webpack_require__(6);
+
+	// render total calories
+	var renderTotalCals = function renderTotalCals(name) {
+	    var tableCalories = (0, _renderTotalCalsTable.getCalories)(name);
+	    var totalCalories = (0, _renderTotalCalsTable.sumCalories)(tableCalories);
+	    $('#' + name + '-calories').text(totalCalories);
+	};
+
+	// render remaining cals
+	var renderRemainCals = function renderRemainCals(name) {
+	    var remainCals = getRemainCals(name);
+	    $('#' + name + '-remaining').text(remainCals);
+	};
+
+	var getRemainCals = function getRemainCals(name) {
+	    var total = parseInt($('#' + name + '-calories').text());
+	    var goalValues = { "Snack": 200 - total, "Breakfast": 400 - total, "Lunch": 600 - total, "Dinner": 800 - total };
+	    return goalValues[name];
+	};
+
+	//render all Calories
+	var renderAllCals = function renderAllCals(name) {
+	    renderTotalCals(name);
+	    renderRemainCals(name);
+	    colorizeCals();
+	};
+
+	var colorizeCals = function colorizeCals() {
+	    $('td.remaining-calories:contains(\'-\')').addClass('red').removeClass('green');
+	    $('td.remaining-calories:not(:contains(\'-\'))').addClass('green').removeClass('red');
+	};
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _all_meal_objects = __webpack_require__(11);
+
+	var _mealRequests = __webpack_require__(12);
+
+	var _appendMeal = __webpack_require__(13);
+
+	var _mealMisc = __webpack_require__(17);
+
+	var $ = __webpack_require__(6);
 
 
 	$(document).ready(function () {
 
 	  (0, _all_meal_objects.renderMeals)();
-	  (0, _all_meal_objects.renderMealTotals)();
+	  (0, _appendMeal.appendMealTotals)();
 
-	  $(document).on({
-	    blur: function blur(event) {
-	      event.preventDefault();
-	      var meal = $(this).parents('table').attr('id');
-	      (0, _all_meal_objects.renderAllCals)(meal);
-	      (0, _all_meal_objects.renderTotalCalsTable)();
-	    }
-	  }, '.calories');
+	  // $('.list').on({
+	  //   blur: function (event) {
+	  //     event.preventDefault()
+	  //     let meal = $(this).parents('table').attr('id')
+	  //     renderAllCals(meal)
+	  //     renderTotalCalsTable()
+	  //    }
+	  // }, '.calories')
 
-	  $(document).on({
+	  $('.meal-buttons').on({
 	    click: function click(event) {
 	      event.preventDefault();
 	      var mealId = this.id;
-	      var foodIds = getCheckedFoods();
+	      var foodIds = (0, _mealMisc.getCheckedFoods)();
 	      var promiseArray = [];
 	      for (var i = 0; i < foodIds.length; i++) {
 	        promiseArray.push((0, _mealRequests.addFoodToMeal)(mealId, foodIds[i]));
 	      }
 	      Promise.all(promiseArray).then(function () {
-	        updatePage();
+	        (0, _mealMisc.updatePage)();
 	      });
 	    }
 	  }, '.add-food-to-meal');
 
-	  $(document).on({
+	  $('.allmeals').on({
 	    mouseenter: function mouseenter() {
 	      $(this).prop("src", "src/x-button.svg");
 	    },
@@ -10918,6 +11022,27 @@
 	  }, '.meal_food_delete_button');
 	});
 
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.clearCheckBoxes = exports.clearMealTables = exports.updatePage = exports.getCheckedFoods = undefined;
+
+	var _all_meal_objects = __webpack_require__(11);
+
+	exports.getCheckedFoods = getCheckedFoods;
+	exports.updatePage = updatePage;
+	exports.clearMealTables = clearMealTables;
+	exports.clearCheckBoxes = clearCheckBoxes;
+
+
+	var $ = __webpack_require__(6);
+
 	function getCheckedFoods() {
 	  var foodIds = [];
 	  $(':checked').each(function (index, val) {
@@ -10929,14 +11054,11 @@
 	function updatePage() {
 	  clearCheckBoxes();
 	  (0, _all_meal_objects.renderMeals)();
-	  // renderMealTotals()
 	  clearMealTables();
-	  // renderTotalCalsTable()
 	}
 
 	function clearMealTables() {
 	  $('.allmeals').empty();
-	  // $('.meal-totals').empty()
 	}
 
 	function clearCheckBoxes() {
