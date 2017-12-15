@@ -8,6 +8,16 @@ This was a joint project between [Brandon Stewart](https://github.com/boveus) an
 
 [Quantified Self](https://amhursh.github.io/quantified-self/)
 
+## Preview
+
+#### Journal
+
+<img width="1674" alt="screen shot 2017-12-14 at 11 07 55 pm" src="https://user-images.githubusercontent.com/28369772/34029075-c21a9658-e123-11e7-9074-53803543f623.png">
+
+#### Foods
+
+<img width="1674" alt="screen shot 2017-12-14 at 11 08 30 pm" src="https://user-images.githubusercontent.com/28369772/34029145-27b64ec6-e124-11e7-86f6-add242075011.png">
+
 ## Initial Setup
 
 1. Clone this repo:
