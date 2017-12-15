@@ -10679,7 +10679,9 @@
 	}
 
 	function foodFormData() {
-	    return new _food.Food(foodFormName.val(), foodFormCals.val());
+	    return { "name": foodFormName.val(), "calories": foodFormCals.val()
+	        // return new Food(foodFormName.val(), foodFormCals.val())
+	    };
 	}
 
 	function clearFormFields() {
@@ -10715,8 +10717,7 @@
 	    var id = row.attr('id');
 	    var name = row.find('.name').text();
 	    var calories = row.find('.calories').text();
-	    return new Food(name, calories, id);
-	    // return {"name": name, "calotires": calories, "id": id}
+	    return { "name": name, "calories": calories, "id": id };
 	}
 
 /***/ }),
