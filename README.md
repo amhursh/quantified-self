@@ -1,3 +1,7 @@
+# Introduction
+
+This was a joint project between [Brandon Stewart](https://github.com/boveus) and [Aaron Hursh](https://github.com/amhursh).  This project involved building a front-end using Javascript and jQuery to create a single-page application(SAP).  The application consumes a RESTful API.  The backend portion of the application was created with Node.js using the Knex library to perform SQL queries.  The resulting data was presented in an API that was consumed by the front-end portion of the application.  This project was completed over the course of two weeks.
+
 # Quantified Self Webpack
 
 To get you started building your Quantified Self app.
