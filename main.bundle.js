@@ -10696,9 +10696,8 @@
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
-	exports.getUpdatedFood = exports.removeFromFoodsTable = undefined;
-
-	var _food = __webpack_require__(4);
+	// import { Food } from '../../models/food'
+	var Food = __webpack_require__(4);
 
 	exports.removeFromFoodsTable = removeFromFoodsTable;
 	exports.getUpdatedFood = getUpdatedFood;
@@ -10716,7 +10715,8 @@
 	    var id = row.attr('id');
 	    var name = row.find('.name').text();
 	    var calories = row.find('.calories').text();
-	    return new _food.Food(name, calories, id);
+	    return new Food(name, calories, id);
+	    // return {"name": name, "calotires": calories, "id": id}
 	}
 
 /***/ }),
@@ -10754,7 +10754,9 @@
 	            var meal = mealObjects[i];
 	            (0, _appendMeal.appendMeal)(meal);
 	            for (var j = 0; j < meal.foods.length; j++) {
-	                (0, _appendFood.appendFood)(meal.foods[j], ".list#" + meal.name, "meal_food");
+	                if (meal.foods[j]) {
+	                    (0, _appendFood.appendFood)(meal.foods[j], ".list#" + meal.name, "meal_food");
+	                }
 	            }
 	            (0, _appendMeal.appendCalories)(meal.name);
 	            (0, _renderMealCalsTable.renderAllCals)(meal.name);
@@ -10949,11 +10951,11 @@
 	};
 
 	//render all Calories
-	var renderAllCals = function renderAllCals(name) {
+	function renderAllCals(name) {
 	    renderTotalCals(name);
 	    renderRemainCals(name);
 	    colorizeCals();
-	};
+	}
 
 	var colorizeCals = function colorizeCals() {
 	    $('td.remaining-calories:contains(\'-\')').addClass('red').removeClass('green');
